@@ -28,7 +28,9 @@ namespace DatingApp
             services.AddDbContext<DataContext>(options=>{
                 options.UseSqlite(_config.GetConnectionString("DefaultConnection"));
             });
-            services.AddRazorPages();
+            
+            services.AddControllers();
+            services.AddCors();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -38,17 +40,14 @@ namespace DatingApp
             {
                 app.UseDeveloperExceptionPage();
             }
-            else
-            {
-                app.UseExceptionHandler("/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-                app.UseHsts();
-            }
+           
 
             app.UseHttpsRedirection();
-            app.UseStaticFiles();
 
+            
             app.UseRouting();
+
+            app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:4200"));
 
             app.UseAuthorization();
 
