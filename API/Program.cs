@@ -1,6 +1,7 @@
 using System.Text;
 using API.Data;
 using API.Interfaces;
+using API.Middleware;
 using API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -35,4 +36,5 @@ app.UseCors(builder => builder.AllowAnyHeader().AllowAnyMethod().WithOrigins("ht
 app.MapControllers();
 app.UseAuthorization();
 app.UseAuthentication();
+ app.UseMiddleware<ExceptionMiddleware>();
 app.Run();
