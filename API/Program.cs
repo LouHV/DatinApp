@@ -1,40 +1,39 @@
-using System.Text;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using API.Data;
-using API.Interfaces;
-using API.Middleware;
-using API.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-
-builder.Services.AddControllers();
-builder.Services.AddDbContext<DataContext>(opt => 
+namespace API
 {
-    opt.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
-});
-builder.Services.AddCors();
-builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options => 
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["TokenKey"])),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                };
-            });
-var app = builder.Build();
-app.UseCors(builder => builder.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:4200"));
+    public class Program
+    {
+        public static async Task Main(string[] args)
+        {
+            var host =  CreateHostBuilder(args).Build();
+            using  var scope = host.Services.CreateScope();
+            var services = scope.ServiceProvider;
+            try{
+                var context = services.GetRequiredService<DataContext>();
+                await context.Database.MigrateAsync();
+                await Seed.SeedUsers(context);
+            }catch(Exception ex){
+                var logger = services.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex,"An error occurred during migration");
+            }
+            await host.RunAsync();
+        }
 
-// Configure the HTTP request pipeline.
-app.MapControllers();
-app.UseAuthorization();
-app.UseAuthentication();
- app.UseMiddleware<ExceptionMiddleware>();
-app.Run();
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                });
+    }
+}
